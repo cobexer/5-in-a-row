@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+	<title>Chat Test</title>
+	<style>
+		html,body{font:normal 0.9em arial,helvetica;}
+		#log {width:440px; height:200px; border:1px solid #7F9DB9; overflow:auto;}
+		#msg {width:330px;}
+	</style>
+	<script src="lib/jquery-1.7.1.js" type="application/javascript"></script>
+	<script src="src/websocket.wrapper.js" type="application/javascript"></script>
+	<script>
+	var socket;
+
+	$(function () {
+		var host = "ws://localhost:12345/websocket/Chat";
+		try {
+			WrappedWebSocket.log = function() { console.log(arguments); };
+			socket = new WrappedWebSocket(host);
+			log('WebSocket - status ' + socket.readyState);
+			socket.onopen    = function(msg) {
+				log("-: socket.onoppen(" + this.readyState + ")");
+			};
+			socket.onmessage = function(message) {
+				var msg = JSON.parse(message.data);
+				log(msg.time + " " + msg.username + ": " + msg.message);
+			};
+			socket.onclose   = function(msg) {
+				log("-: socket.onclose(" + this.readyState + ")");
+			};
+		}
+		catch(ex){
+			log(ex);
+		}
+		$("#msg").focus();
+		$(window).on('unload', function() {
+			if (socket) {
+				socket.close();
+			}
+		});
+	});
+
+	function send(){
+		var txt,msg;
+		txt = $("#msg");
+		msg = { message: txt.val() };
+		if(msg.message && socket) {
+			txt.val("");
+			txt.focus();
+			try {
+				socket.send(JSON.stringify(msg));
+			} catch(ex){
+				log(ex);
+			}
+		}
+	}
+	function quit() {
+		log("Goodbye!");
+		socket.close();
+		socket = null;
+	}
+
+	function log(msg){
+		var l = $("#log")[0];
+		l.innerHTML = msg + "<br />" + l.innerHTML;
+	}
+	function onkey(event) {
+		if(event.keyCode == 13) {
+			send();
+		}
+	}
+</script>
+
+</head>
+<body>
+	<div id="log"></div>
+	<input id="msg" type="textbox" onkeypress="onkey(event)"/>
+	<button onclick="send()">Send</button>
+	<button onclick="quit()">Quit</button>
+</body>
+</html>

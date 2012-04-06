@@ -2,3 +2,7 @@
 *~
 .*.swp
 
+# root directory
+/.settings/
+/.kdev4/
+/.buildpath
