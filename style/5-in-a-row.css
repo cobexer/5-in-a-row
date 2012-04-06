@@ -1,6 +1,12 @@
-@charset("utf-8")
+@charset "utf-8";
 /*
  * Copyright (c) 2012 Obexer Christoph. All rights reserved.
  * Released under the MIT and GPL licenses.
  */
 
+#background {
+	position: fixed;
+}
+#game_array {
+	position: fixed;
+}
