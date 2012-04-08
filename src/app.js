@@ -4,5 +4,8 @@
  *
  * Released under the MIT and GPL licenses.
  */
-
-
+$(function() {
+	init();
+	$('<div id="ingame-chat"></div>')
+		.chat({ channels: ['Lobby'] });
+})

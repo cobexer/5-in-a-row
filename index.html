@@ -7,14 +7,24 @@
 	<head>
 		<title>5 in a row</title>
 		<script src="lib/jquery-1.7.1.js"></script>
+		<script src="lib/jquery-ui/jquery-ui-1.8.18.js"></script>
+		<script src="lib/cobexer.chat.js"></script>
 		<script src="src/utils.js"></script>
 		<script src="src/ui.js"></script>
 		<script src="src/net.js"></script>
 		<script src="src/app.js"></script>
+		<link rel="stylesheet" href="lib/jquery-ui/jquery-ui-1.8.18.css" />
+		<link rel="stylesheet" href="lib/cobexer.chat.css" />
 		<link rel="stylesheet" href="style/5-in-a-row.css" />
 	</head>
-	<body onload="init();">
-		<canvas id="background" width="2000" height="1200"></canvas>  
-		<canvas id="game_array" width="2000" height="1200"></canvas>
+	<body>
+		<div id="content-wrapper">
+			<h1>5 in a row!</h1>
+			<div id="game-container">
+				<canvas id="background" width="640" height="480"></canvas>  
+				<canvas id="game_array" width="640" height="480"></canvas>
+			</div>
+			<footer>Copyright &copy; 2012 Obexer Christoph, Watzinger Dietmar. All rights reserved.</footer>
+		</div>
 	</body>
 </html>

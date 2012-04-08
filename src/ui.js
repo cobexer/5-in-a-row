@@ -7,11 +7,11 @@
 
 
 
-var x_size_array = 10;
-var y_size_array = 5;
-var field_size = 50;
-var x_offset = 50;
-var y_offset = 50;
+var x_size_array = 20;
+var y_size_array = 15;
+var field_size = 32;
+var x_offset = 0;
+var y_offset = 0;
 
 var color = "green";
 var name = "Corni";
@@ -19,18 +19,16 @@ var name = "Corni";
 var array = new Array(x_size_array);
 var animation_counter;
 
-var background_window;
 var array_window;
+var game_array;
 
 function init()
 {
-	background = document.getElementById("background");
-	background_window = background.getContext('2d');
 	drawBackground();
 	
-	game_array = document.getElementById("game_array");
-	array_window = game_array.getContext('2d');
-	game_array.addEventListener('click', clickField, false);
+	game_array = $("#game_array");
+	array_window = game_array[0].getContext('2d');
+	game_array.on('click', clickField);
 
 	for(var i=0; i<array.length; i++)
 	{
@@ -40,6 +38,8 @@ function init()
 
 function drawBackground()
 {
+	var background = $("#background")[0];
+	var background_window = background.getContext('2d');
 	var img = new Image();  
 	img.onload = function()
 	{
@@ -145,8 +145,9 @@ function getCursorPosition(e)
       y = e.clientY + document.body.scrollTop +
            document.documentElement.scrollTop;
     }
-	x -= game_array.offsetLeft;
-	y -= game_array.offsetTop;
+    var offset = game_array.offset();
+	x -= offset.left;
+	y -= offset.top;
 	
 	if(x<x_offset || x>(x_offset + x_size_array*field_size) || y<y_offset || y>(y_offset + y_size_array*field_size))
 	{

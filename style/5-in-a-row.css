@@ -4,9 +4,39 @@
  * Released under the MIT and GPL licenses.
  */
 
-#background {
-	position: fixed;
+body {
+	font-family: Verdana,sans-serif;
+	background-color: #BDBDBD;
 }
-#game_array {
-	position: fixed;
+
+h1 {
+	text-align: center;
+}
+
+#content-wrapper {
+	width: 900px;
+	margin: 0 auto;
+}
+
+#game-container {
+	position: relative;
+	width: 640px;
+	height: 480px;
+	margin: 0 auto;
+	box-shadow: 0 0 15px black;
+	border-radius: 3px;
+}
+
+#game-container > canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	padding: 0;
+	margin: 0;
+}
+
+#content-wrapper footer {
+	padding-top: .8em;
+	font-size: 75%;
+	text-align: center;
 }
