@@ -8,4 +8,4 @@ $(function() {
 	init();
 	$('<div id="ingame-chat"></div>')
 		.chat({ channels: ['Lobby'] });
-})
+});
