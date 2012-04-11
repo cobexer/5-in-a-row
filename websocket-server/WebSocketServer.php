@@ -9,6 +9,12 @@
 class WebSocketServer {
 	// see http://tools.ietf.org/html/rfc6455#section-1.3
 	private static $HandshakeMagicGUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+	private static function log($message) {
+		$time = time();
+		printf("%s%03d %s\n", strftime("%Y%m%d %H:%M:%S.", $time), ($time % 1000), $message);
+	}
+
 	private $socket;
 	private $sockets = array();
 	private $clients = array();
@@ -38,16 +44,16 @@ class WebSocketServer {
 						$this->logSocketError("error accepting new client");
 						continue;
 					}
-					$this->log("new connection accepted " . $clientSocket);
+					self::log("new connection accepted " . $clientSocket);
 					$this->sockets[] = $clientSocket;
 				}
 				else {
-					$read = @socket_recv($s, $buffer, 4096, 0);
+					$read = @socket_recv($s, $buffer, 8 * 1024, 0); // FIXME: this limit is silly, fix it when going to non-blocking sockets
 					if (0 === $read || false === $read) {
 						if (false === $read) {
 							$this->logSocketError("error receiving data from client");
 						}
-						$this->log("socket_recv failed, disconnect client " . $s);
+						self::log("socket_recv failed, disconnect client " . $s);
 						$this->disconnect($s);
 					}
 					else {
@@ -55,17 +61,16 @@ class WebSocketServer {
 							$user->onMessage($this->unwrap($buffer));
 						}
 						else {
-							$this->log("new client, initiating handshake " . $s);
-							$resource = $this->dohandshake($s, $buffer);
-							$user = $this->newUser($resource, $s);
-							if (!$user) {
-								$this->log("failed to create user object, disconecting " . $s);
-								array_splice($this->sockets, array_search($s, $this->sockets), 1);
-								socket_close($s);
-							}
-							else {
+							try {
+								$user = $this->doHandshake($s, $buffer);
 								$user->setWebsocketServer($this);
 								$this->clients[] = $user;
+							}
+							catch (HandshakeException $ex) {
+								self::log('Handshake with (' . $s . ') failed: ' . $ex->getMessage());
+								array_splice($this->sockets, array_search($s, $this->sockets), 1);
+								socket_close($s);
+								self::log('connection with (' . $s . ') closed');
 							}
 						}
 					}
@@ -84,7 +89,7 @@ class WebSocketServer {
 	}
 
 	public function addEndpoint(WebSocketEndpoint $endpoint) {
-		$this->log("adding endpoint for resource '" . $endpoint->getResource() . "'");
+		self::log("adding endpoint for resource '" . $endpoint->getResource() . "'");
 		$this->endpoints[$endpoint->getResource()] = $endpoint;
 
 	}
@@ -93,13 +98,8 @@ class WebSocketServer {
 		$errorcode = false !== $socket ? socket_last_error($socket) : socket_last_error();
 		if ($errorcode) {
 			$error = socket_strerror($errorcode);
-			log($message . ': ' . $error);
+			self::log($message . ': ' . $error);
 		}
-	}
-
-	private function log($message) {
-		$time = time();
-		printf("%s%03d %s\n", strftime("%Y%m%d %H:%M:%S.", $time), ($time % 1000), $message);
 	}
 
 	function disconnect($clientSocket, $success = true) {
@@ -113,10 +113,10 @@ class WebSocketServer {
 		}
 		$index = array_search($clientSocket, $this->sockets);
 		if (!$success) {
-			$this->logSocketError("error processng socket " . $clientSocket . ", closing connection", $clientSocket);
+			$this->logSocketError('error on socket (' . $clientSocket . '), closing connection', $clientSocket);
 		}
 		@socket_close($clientSocket);
-		if ($index >= 0) {
+		if (false !== $index) {
 			array_splice($this->sockets, $index, 1);
 		}
 		if ($theUser) {
@@ -124,44 +124,143 @@ class WebSocketServer {
 		}
 	}
 
-	private function dohandshake($socket, $buffer) {
-		$headers = $this->getheaders($buffer);
-		//TODO: check the request!! (check at least resource, and version, and key of course)
-		$upgrade  = array(
-			"HTTP/1.1 101 WebSocket Protocol Handshake",
-			"Upgrade: WebSocket",
-			"Connection: Upgrade",
-			"Sec-WebSocket-Origin: " . $headers['origin'],
-			"Sec-WebSocket-Accept: " .  $this->calcKeyHybi10($headers['key'])
-		);
-		$upgrade = join("\r\n", $upgrade) . "\r\n\r\n";
+	private function writeHandshakeResponse($socket, array $headers) {
+		$response = join("\r\n", $headers) . "\r\n\r\n";
 
-		socket_write($socket, $upgrade, strlen($upgrade));
-		return $headers['resource'];
+		$responseLength = strlen($response);
+		return $responseLength === socket_write($socket, $response, $responseLength);
 	}
 
-	private function calcKeyHybi10($key) {
-		$sha = sha1(trim($key) . self::$HandshakeMagicGUID, true);
-		return base64_encode($sha);
+	private function doHandshake($socket, $buffer) {
+		try {
+			$headers = $this->getHeaders($buffer);
+			$response = array(
+				"HTTP/1.1 101 Switching Protocols",
+				"Upgrade: websocket",
+				"Connection: Upgrade",
+				"Sec-WebSocket-Accept: " . base64_encode(sha1($headers['sec-websocket-key'] . self::$HandshakeMagicGUID, true))
+			);
+			if (isset($headers['origin'])) {
+				array_push($response, "Sec-WebSocket-Origin: " . $headers['origin']); //TODO: check RFC, should this be Allow-Origin??
+			}
+			$foundEndpoint = false;
+			foreach($this->endpoints as $eresource => $endpoint) {
+				if (0 === strcmp($eresource, $headers[0])) {
+					$foundEndpoint = $endpoint;
+				}
+			}
+			if (false === $foundEndpoint) {
+				throw new ReadHandshakeException('No endpoint for resource: "' . $headers[0] . '" found', array(
+					'HTTP/1.1 404 Not Found',
+					'Connection: close'
+				));
+			}
+			if (!$this->writeHandshakeResponse($socket, $response)) {
+				$this->logSocketError('Error writing the handshake response to the client', $socket);
+				throw new HandshakeException('--^');
+			}
+			$user = $foundEndpoint->onNewUser($socket);
+			if ($user instanceof WebSocketUser) {
+				self::log('New user (' . $socket . ') for endpoint "' . $headers[0] . '" created');
+			}
+			else {
+				throw new HandshakeException('The endpoint for resource "' . $headers[0] . '" did not return a valid user');
+			}
+			return $user;
+		}
+		catch (ReadHandshakeException $ex) {
+			$this->writeHandshakeResponse($socket, $ex->getResponseHeaders());
+			throw $ex;
+		}
 	}
 
-	private function getheaders($req) {
-		//TODO: check this function for conformance with "Reading the Client's Opening Handshake"
+	private function checkHeader($headers, $required, $name, &$result, $value = null, $acceptMultiple = true) {
+		$name = strtolower($name);
+		if (isset($headers[$name])) {
+			$header = $headers[$name];
+			if ($acceptMultiple) {
+				if (null !== $value) {
+					if (is_array($header)) {
+						foreach($header as $h) {
+							if (0 === strcasecmp($h, $value)) {
+								$result = $header;
+								return true;
+							}
+						}
+					}
+					elseif (0 === strcasecmp($value, $header)) {
+						$result = $header;
+						return true;
+					}
+				}
+				else {
+					$result = $header;
+					return true;
+				}
+			}
+			elseif (!is_array($header)) {
+				$result = $header;
+				return true;
+			}
+		}
+		if (true === $required) {
+			throw new ReadHandshakeException('header "' . $name . '" missing or invalid');
+		}
+		return false;
+	}
+
+	private function getHeaders($req) {
+		$dummy; // used for headers where the value does not matter
+		$reqHeaders = explode("\r\n", trim($req));
 		$headers = array();
-		if (preg_match("/GET (.*) HTTP/", $req, $match)) {
-			$headers['resource'] = $match[1];
+		if (is_array($reqHeaders) &&
+			count($reqHeaders) > 0 &&
+			preg_match('/^GET\\s*(.*?)\\s*HTTP\\/(\\d\\.\\d)$/', $reqHeaders[0], $requestLine) &&
+			version_compare($requestLine[2], '1.1', '>=')) {
+			$headers[0] = $requestLine[1];
 		}
-		if (preg_match("/Host: (.*)\r\n/", $req, $match)) {
-			$headers['host'] = $match[1];
+		else {
+			throw new ReadHandshakeException('Request line malformed');
 		}
-		if (preg_match("/Origin: (.*)\r\n/", $req, $match)) {
-			$headers['origin'] = $match[1];
+		array_splice($reqHeaders, 0, 1); // remove request line
+		foreach($reqHeaders as $header) {
+			if (preg_match('/^([^:]*):(.*)$/', $header, $match)) {
+				$name = trim(strtolower($match[1]));
+				$val = trim($match[2]);
+				$value = explode(', ', $val);
+				if (1 >= count($value)) {
+					$value = $val;
+				}
+				if (!isset($headers[$name])) {
+					$headers[$name] = $value;
+				}
+				elseif (is_array($headers[$name])) {
+					array_push($headers[$name], $value);
+				}
+				else {
+					$headers[$name] = array($headers[$name], $value);
+				}
+			}
+			else {
+				throw new ReadHandshakeException('Malformed header found');
+			}
 		}
-		if (preg_match("/Sec-WebSocket-Version: (.*)\r\n/" , $req, $match)) {
-			$headers['version'] = $match[1];
+		// check mandatory headers
+		$this->checkHeader($headers, true, 'Sec-WebSocket-Key', $dummy, null, false);
+		$this->checkHeader($headers, true, 'Sec-WebSocket-Version', $version);
+		if (($version !== '13') || (is_array($version) && false === array_search('13', $version))) {
+			throw new ReadHandshakeException("unsupported Protocol version", array(
+				'HTTP/1.1 426 Upgrade Required',
+				'Sec-WebSocket-Version: 13'
+			));
 		}
-		if (preg_match("/Sec-WebSocket-Key: (.*)\r\n/" , $req, $match)) {
-			$headers['key'] = $match[1];
+		$this->checkHeader($headers, true, 'Upgrade', $dummy, 'websocket', false);
+		$this->checkHeader($headers, true, 'Connection', $dummy, 'upgrade');
+		if ($this->checkHeader($headers, false, 'Sec-WebSocket-Protocol', $protocols)) {
+			//check if one of the supplied sub protocols is supported and echo that back to the cllient - NYI
+		}
+		if ($this->checkHeader($headers, false, 'Sec-WebSocket-Extensions', $extensions)) {
+			//check the supplied extensions - NYI
 		}
 		return $headers;
 	}
@@ -213,13 +312,13 @@ class WebSocketServer {
 
 		$responseLength = $headerLength + $messageLength;
 		$written = @socket_write($socket, $header . $message, $responseLength);
-		//TODO: continue writes in such cases
 		if (false === $written) {
-			logSocketError("failed to write to the client, disconnecting");
+			$this->logSocketError("failed to write to the client, disconnecting");
 			$this->disconnect($socket);
 			return false;
 		}
 		elseif ($written < $responseLength) {
+			//TODO: continue writes in such cases
 			$this->disconnect($socket);
 			return false;
 		}
@@ -231,9 +330,7 @@ class WebSocketServer {
 	}
 
 	// copied from http://lemmingzshadow.net/386/php-websocket-serverclient-nach-draft-hybi-10/
-	function unwrap($data = "") {
-		$bytes = $data;
-		$dataLength = '';
+	function unwrap($bytes) {
 		$mask = '';
 		$coded_data = '';
 		$decodedData = '';
@@ -272,14 +369,40 @@ class WebSocketServer {
 	}
 
 	private function newUser($resource, $socket) {
-		$this->log("searching endpoint for resource '$resource'");
 		foreach($this->endpoints as $eresource => $endpoint) {
 			if ($eresource === $resource) {
-				return $endpoint->onNewUser($socket);
+				$user = $endpoint->onNewUser($socket);
+				if (!$user instanceof WebSocketUser) {
+					throw new HandshakeException('The endpoint for resource "' . $resource . '" did not return a valid user');
+				}
+				self::log('new user (' . $socket . ') for endpoint "' . $resource . '" created');
+				return $user;
 			}
 		}
-		$this->log("not found");
-		return false;
+		throw new HandshakeException('No endpoint for resource: "' . $resource . '" found');
+	}
+}
+
+class HandshakeException extends Exception {
+	public function __construct($message) {
+		parent::__construct($message);
+	}
+}
+
+class ReadHandshakeException extends HandshakeException {
+	private $responseHeaders;
+	public function __construct($message, $responseHeaders = null) {
+		parent::__construct($message);
+		$this->responseHeaders = $responseHeaders;
+		if (null === $this->responseHeaders) {
+			$this->responseHeaders = array(
+				'HTTP/1.1 400 Bad Request'
+			);
+		}
+	}
+
+	public function getResponseHeaders() {
+		return $this->responseHeaders;
 	}
 }
 
@@ -302,12 +425,15 @@ abstract class WebSocketUser {
 	public function __construct($socket) {
 		$this->socket = $socket;
 	}
+
 	public function setWebsocketServer(WebSocketServer $wss) {
 		$this->websocketServer = $wss;
 	}
+
 	public function getSocket() {
 		return $this->socket;
 	}
+
 	public function send($message) {
 		if (is_array($message)) {
 			$message = json_encode($message);
