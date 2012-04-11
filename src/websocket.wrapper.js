@@ -83,7 +83,7 @@
 	};
 	WrappedWebSocket.prototype.removeEventListener = function(type, fn, capture) {
 		log(["WrappedWebSocket.removeEventListener", arguments]);
-		var handler, res, boundHandlers = this._boundHandlers[type];
+		var handler, boundHandlers = this._boundHandlers[type];
 		capture = capture || false;
 		var i = boundHandlers.length;
 		while(i--) {

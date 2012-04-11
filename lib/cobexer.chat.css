@@ -1,0 +1,87 @@
+/*
+ * Copyright (c) 2012 Obexer Christoph. All rights reserved.
+ * Released under the MIT and GPL licenses.
+ */
+
+.cobexer-chat {
+	position: fixed;
+	line-height: 25px;
+	text-align: 'left';
+	padding-left: 5px;
+	right: 20px;
+	bottom: 0;
+	min-width: 200px;
+	height: 25px;
+}
+
+.cobexer-chat > div {
+	cursor: pointer;
+	position: absolute;
+	width: 20px;
+	height: 25px;
+	top: -1px;
+}
+
+.cobexer-chat > div .ui-icon {
+	position: relative;
+	top: 50%;
+	left: 2px;
+	margin-top: -8px;
+}
+
+.cobexer-chat-panel {
+	width: 500px;
+	height: 300px;
+	position: fixed;
+	bottom: 27px;
+	right: 20px;
+	text-align: left;
+	font-size: 80%;
+	z-index: 3;
+	padding: 0;
+}
+
+.cobexer-chat-panel .ui-tabs-nav {
+	border: none;
+}
+
+.cobexer-chat-panel-input-container {
+	height: 35px;
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	text-align: left;
+}
+
+.cobexer-chat-panel-input-container > div {
+	width: 380px;
+	position: absolute;
+	left: 3px;
+	top: 2px;
+}
+
+.cobexer-chat-panel-input-container input {
+	width: 100%;
+	height: 28px;
+	padding: 0 5px;
+}
+
+.cobexer-chat-panel-input-container button {
+	width: 98px;
+	position: absolute;
+	right: 2px;
+	top: 2px;
+}
+
+
+ul.cobexer-chat-userlist li {
+	position: relative;
+	line-height: 18px;
+}
+
+ul.cobexer-chat-userlist li span.ui-icon {
+	position: absolute;
+	left: -17px;
+	top: 50%;
+	margin-top: -8px;
+}
