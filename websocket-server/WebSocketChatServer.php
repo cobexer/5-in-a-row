@@ -37,16 +37,16 @@ class WebSocketChatUser extends WebSocketUser {
 	 */
 	function onMessage($msg) {
 		$msgObj = json_decode($msg, true);
-		if ($msgObj && isset($msgObj['message'])) {
-			if ($msgObj['message'][0] != '/') {
-				$response = $this->getResponseObj($msgObj['message']);
+		if ($msgObj && isset($msgObj['text'])) {
+			if ($msgObj['text'][0] != '/') {
+				$response = $this->getResponseObj($msgObj['text']);
 				$msg = json_encode($response);
 				foreach($this->chatServer->getAllClients() as $client) {
 					$client->send($msg);
 				}
 			}
 			else {
-				if (preg_match('/(\/\S*)\s*(.*)/', $msgObj['message'], $match)) {
+				if (preg_match('/(\/\S*)\s*(.*)/', $msgObj['text'], $match)) {
 					switch ($match[1]) {
 						case '/name':
 						case '/me':
@@ -66,13 +66,13 @@ class WebSocketChatUser extends WebSocketUser {
 	private function getResponseObj($message, $success = true) {
 		$response = array(
 			'status' => 'ok',
-			'time' => strftime("%H:%M:%S", time()),
-			'username' => $this->name,
-			'message' => $message
+			'timestamp' => strftime("%H:%M:%S", time()),
+			'name' => $this->name,
+			'text' => $message
 		);
 		if (false === $success) {
 			$response['status'] = 'failed';
-			$response['username'] = 'server';
+			$response['name'] = 'server';
 		}
 		return $response;
 	}
