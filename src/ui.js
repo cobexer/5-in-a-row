@@ -1,26 +1,28 @@
 /**
  * 5-in-a-row <http://cobexer.github.com/5-in-a-row/>
- * Copyright (c) 2012 Obexer Christoph. All rights reserved.
+ * Copyright (c) 2012 Obexer Christoph & Dietmar Watzinger. All rights reserved.
  *
  * Released under the MIT and GPL licenses.
  */
 
 
 
-var x_size_array = 10;
-var y_size_array = 5;
-var field_size = 50;
+var x_size_array = 50;
+var y_size_array = 20;
+var field_size = 25;
 var x_offset = 50;
 var y_offset = 50;
-
-var color = "green";
-var name = "Corni";
 	
 var array = new Array(x_size_array);
 var animation_counter;
 
 var background_window;
 var array_window;
+
+//one pc play
+var n = 0;
+var player1 = new Array("Corni", "x", "green");
+var player2 = new Array("Didi", "circle", "red");
 
 function init()
 {
@@ -57,48 +59,54 @@ function drawBackground()
 	img.src = 'style/wolken.jpg';
 }
 
-function setField(x, y)
+function setField(x, y, player)
 {
-	var object = new Array(name, color);
 	if(array[x][y] != null || (y != 0 && array[x][y-1] == null))
 	{
 		return false;
 	}
-	array[x][y] = object;
-	setFieldAnimation(x, y, y_size_array-1);
+	array[x][y] = player;
+	setFieldAnimation(x, y, y_size_array-1, player);
 	
 	return true;
 }
 
-function setFieldAnimation(x, y, animation_counter)
+function setFieldAnimation(x, y, animation_counter, player)
 {
 	setTimeout(function()
 	{
-		//drawCircle(x, animation_counter);
-		drawX(x, animation_counter);
+		switch(player[1])
+		{
+			case "circle":
+				drawCircle(x, animation_counter, player);
+				break;
+			case "x":
+				drawX(x, animation_counter, player);
+				break;
+		}
 		
 		array_window.clearRect(x_offset + field_size*x, (y_size_array*field_size + y_offset - field_size) - field_size*(animation_counter+1), field_size, field_size);
 		animation_counter --;
 		
 		if (animation_counter >= y)
 		{
-			self.setFieldAnimation(x, y, animation_counter);
+			self.setFieldAnimation(x, y, animation_counter, player);
 		}
 	}, 35);
 }
 
-function drawCircle(x, y)
+function drawCircle(x, y, player)
 {
 	x = (x_offset + field_size/2) + field_size*x;
 	y = y_size_array*field_size + y_offset - field_size/2 - field_size*y;
 	
-	array_window.fillStyle = color;
+	array_window.fillStyle = player[2];
 	array_window.beginPath();
 	array_window.arc(x, y, field_size/2, 0, 2*Math.PI, true);
 	array_window.fill();
 }
 
-function drawX(x, y)
+function drawX(x, y, player)
 {
 	x = x_offset + field_size*x + field_size/2;
 	y = y_size_array*field_size + y_offset - field_size/2 - field_size*y;
@@ -106,7 +114,7 @@ function drawX(x, y)
 	array_window.save();
 	array_window.translate(x, y)
 	array_window.rotate(Math.PI / 4);
-	array_window.fillStyle = color;
+	array_window.fillStyle = player[2];
 	array_window.fillRect(-field_size/2, -2.5, field_size, 5);
 	array_window.rotate(Math.PI / 2);
 	array_window.fillRect(-field_size/2, -2.5, field_size, 5);
@@ -116,15 +124,20 @@ function drawX(x, y)
 function clickField(e)
 {
 	var coords = getCursorPosition(e);
+	var player;
+	if(n%2 == 0) player = player1;
+	else player = player2;
+	
 	
 	if(coords != null)
 	{
+		n++;
 		var x = coords[0];
 		var y = coords[1];
-		setField(x, y);
+		setField(x, y, player);
 		setTimeout(function()
 		{
-			checkWin(x, y);
+			checkWin(x, y, player);
 		}, 1000);
 	}
 }
@@ -161,25 +174,25 @@ function getCursorPosition(e)
 
 }
 
-function checkWin(x, y)
+function checkWin(x, y, player)
 {
 	// check x Achse
 	var count = 1;
 	for(var i = 1; i<5 && x-i>=0; i++)
 	{
 		if(array[x-i][y] == null) break;
-		if(array[x-i][y][0] == name) count++;
+		if(array[x-i][y][0] == player[0]) count++;
 		else break;
 	}
 	for(var i = 1; i<5 && x+i<=(x_size_array-1); i++)
 	{
 		if(array[x+i][y] == null) break;
-		if(array[x+i][y][0] == name) count++;
+		if(array[x+i][y][0] == player[0]) count++;
 		else break;
 	}
 	if(count >= 5)
 	{
-		alert("You win");
+		alert(player[0] + " win");
 		return true;
 	}
 	
@@ -188,12 +201,12 @@ function checkWin(x, y)
 	for(var i = 1; i<5 && y-i>=0; i++)
 	{
 		if(array[x][y-i] == null) break;
-		if(array[x][y-i][0] == name) count++;
+		if(array[x][y-i][0] == player[0]) count++;
 		else break;
 	}
 	if(count >= 5)
 	{
-		alert("You win");
+		alert(player[0] + " win");
 		return true;
 	}
 	
@@ -202,18 +215,18 @@ function checkWin(x, y)
 	for(var i = 1; i<5 && x-i>=0 && y+i<=(y_size_array-1); i++)
 	{
 		if(array[x-i][y+i] == null) break;
-		if(array[x-i][y+i][0] == name) count++;
+		if(array[x-i][y+i][0] == player[0]) count++;
 		else break;
 	}
 	for(var i = 1; i<5 && x+i<=(x_size_array-1) && y-i>=0; i++)
 	{
 		if(array[x+i][y-i] == null) break;
-		if(array[x+i][y-i][0] == name) count++;
+		if(array[x+i][y-i][0] == player[0]) count++;
 		else break;
 	}
 	if(count >= 5)
 	{
-		alert("You win");
+		alert(player[0] + " win");
 		return true;
 	}
 	
@@ -222,18 +235,18 @@ function checkWin(x, y)
 	for(var i = 1; i<5 && x+i<=(x_size_array-1) && y+i<=(y_size_array-1); i++)
 	{
 		if(array[x+i][y+i] == null) break;
-		if(array[x+i][y+i][0] == name) count++;
+		if(array[x+i][y+i][0] == player[0]) count++;
 		else break;
 	}
 	for(var i = 1; i<5 && x-i>=0 && y-i>=0; i++)
 	{
 		if(array[x-i][y-i] == null) break;
-		if(array[x-i][y-i][0] == name) count++;
+		if(array[x-i][y-i][0] == player[0]) count++;
 		else break;
 	}
 	if(count >= 5)
 	{
-		alert("You win");
+		alert(player[0] + " win");
 		return true;
 	}
 	return false;
