@@ -16,6 +16,7 @@ h1 {
 #content-wrapper {
 	width: 900px;
 	margin: 0 auto;
+	text-align: center;
 }
 
 #game-container {

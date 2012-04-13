@@ -21,8 +21,25 @@
 	<body>
 		<div id="content-wrapper">
 			<h1>5 in a row!</h1>
+			<div>
+				<label>Name: <input type="text" id="player-name"/></label>
+				<!-- TODO: add js color picker?! -->
+				<label>Color: <select id="player-color">
+					<option>red</option>
+					<option>green</option>
+					<option>blue</option>
+					<option>orange</option>
+					<option>yellow</option>
+					<option>lime</option>
+				</select></label>
+				<label>Symbol: <select id="player-method">
+					<option>x</option>
+					<option>circle</option>
+				</select></label>
+			</div>
+			<br />
 			<div id="game-container">
-				<canvas id="background" width="640" height="480"></canvas>  
+				<canvas id="background" width="640" height="480"></canvas>
 				<canvas id="game_array" width="640" height="480"></canvas>
 			</div>
 			<footer>Copyright &copy; 2012 Obexer Christoph, Watzinger Dietmar. All rights reserved.</footer>
