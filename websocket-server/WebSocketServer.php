@@ -309,6 +309,9 @@ abstract class WebSocketUser {
 		return $this->socket;
 	}
 	public function send($message) {
+		if (is_array($message)) {
+			$message = json_encode($message);
+		}
 		return $this->websocketServer->send($this->socket, $message);
 	}
 

@@ -54,7 +54,7 @@ class WebSocketChatUser extends WebSocketUser {
 							break;
 						default:
 							$this->send(json_encode($this->getResponseObj('unknown command', false)));
-						    break;
+							break;
 					}
 				}
 				else {
