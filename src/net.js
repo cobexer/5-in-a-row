@@ -35,7 +35,8 @@ function onMessage(event) {
 	switch(msg.type) {
 	// some player clicked somewhere
 	case 'click':
-		// msg = { player: {...}, x: x, y: y }
+		// msg = { player: {...}, x: x, y: y [, isNextPlayer: true] }
+		// if (msg.isNextPlayer) ... we are the next one to click
 		break;
 	// some info about a player in this game changed
 	case 'updatePlayer':
@@ -57,6 +58,10 @@ function onMessage(event) {
 	case 'playerLeft':
 		// msg = { player: {...} }
 		//TODO: reset the game array
+		break;
+	case 'newGame':
+		// msg= { name: '' }
+		//TODO: reset game array, enable game admin controls
 		break;
 	}
 }

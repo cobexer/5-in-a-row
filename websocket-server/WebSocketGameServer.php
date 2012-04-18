@@ -79,6 +79,17 @@ class WebSocketGameUser extends WebSocketUser {
 				case 'updatePlayer':
 					$this->updatePlayer($msgObj);
 					break;
+				case 'newGame':
+					if ($this->game) {
+						$this->game->leave();
+					}
+					$this->game = $this->gameServer->newGame($this);
+					$msg = array(
+						'type' => 'newGame',
+						'name' => $this->name . "'s game"
+					);
+					$this->send($msg);
+					break;
 			}
 			//TODO: process user inputs
 		}
