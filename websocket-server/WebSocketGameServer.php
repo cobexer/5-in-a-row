@@ -58,40 +58,42 @@ class WebSocketGameUser extends WebSocketUser {
 		$this->method = 'x';
 	}
 
-	function onMessage($msg) {
-		$msgObj = json_decode($msg, true);
-		if ($msgObj && isset($msgObj['type'])) {
-			switch($msgObj['type']) {
-				case 'click':
-					//TODO: check for validity (range checks, may this player click?, ...)
-					$msgObj['player'] = $this->getUserObj();
-					$click = json_encode($msgObj);
-					foreach($this->game->getUsers() as $user) {
-						$user->send($click);
-					}
-					break;
-				case 'init':
-					$this->updatePlayer($msgObj);
-					$player = $this->getUserObj();
-					$player['type'] = 'init';
-					$this->send($player);
-					break;
-				case 'updatePlayer':
-					$this->updatePlayer($msgObj);
-					break;
-				case 'newGame':
-					if ($this->game) {
-						$this->game->leave();
-					}
-					$this->game = $this->gameServer->newGame($this);
-					$msg = array(
-						'type' => 'newGame',
-						'name' => $this->name . "'s game"
-					);
-					$this->send($msg);
-					break;
+	function onMessage(WebSocketMessage $msg) {
+		if ($msg->isText()) {
+			$msgObj = json_decode($msg->data, true);
+			if ($msgObj && isset($msgObj['type'])) {
+				switch($msgObj['type']) {
+					case 'click':
+						//TODO: check for validity (range checks, may this player click?, ...)
+						$msgObj['player'] = $this->getUserObj();
+						$click = json_encode($msgObj);
+						foreach($this->game->getUsers() as $user) {
+							$user->send($click);
+						}
+						break;
+					case 'init':
+						$this->updatePlayer($msgObj);
+						$player = $this->getUserObj();
+						$player['type'] = 'init';
+						$this->send($player);
+						break;
+					case 'updatePlayer':
+						$this->updatePlayer($msgObj);
+						break;
+					case 'newGame':
+						if ($this->game) {
+							$this->game->leave();
+						}
+						$this->game = $this->gameServer->newGame($this);
+						$msg = array(
+							'type' => 'newGame',
+							'name' => $this->name . "'s game"
+						);
+						$this->send($msg);
+						break;
+				}
+				//TODO: process user inputs
 			}
-			//TODO: process user inputs
 		}
 	}
 
