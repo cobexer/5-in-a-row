@@ -8,7 +8,12 @@ var gamePlayer = { name: 'Guest' + Math.floor(Math.random() * 10000), method: 'x
 $(function() {
 	if (typeof window.console !== 'undefined' && typeof window.console.log === 'function' && typeof window.console.log.apply === 'function') {
 		WrappedWebSocket.log = function() {
-			console.log.apply(console, arguments);
+			if (!!console.__proto__ && "log" in console.__proto__) { // detect chromes fu*** console
+				console.log(arguments);
+			}
+			else {
+				console.log.apply(console, arguments);
+			}
 		};
 	}
 	init();

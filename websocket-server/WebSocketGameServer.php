@@ -58,6 +58,10 @@ class WebSocketGameUser extends WebSocketUser {
 		$this->method = 'x';
 	}
 
+	function getName() {
+		return $this->name;
+	}
+
 	function onMessage($msg) {
 		$msgObj = json_decode($msg, true);
 		if ($msgObj && isset($msgObj['type'])) {
@@ -75,6 +79,18 @@ class WebSocketGameUser extends WebSocketUser {
 					$player = $this->getUserObj();
 					$player['type'] = 'init';
 					$this->send($player);
+					//code to autostart a game, or auto join a non full game
+					$games = $this->gameServer->getOpenGames();
+					if (count($games) > 0) {
+						if ($games[0]->join($this)) {
+							$this->game = $games[0];
+						}
+					}
+					else {
+						$this->onMessage(json_encode(array(
+							'type' => 'newGame'
+						)));
+					}
 					break;
 				case 'updatePlayer':
 					$this->updatePlayer($msgObj);
@@ -90,6 +106,10 @@ class WebSocketGameUser extends WebSocketUser {
 					);
 					$this->send($msg);
 					break;
+				default:
+					echo 'unknown message ' . $msg;
+				    break;
+
 			}
 			//TODO: process user inputs
 		}
@@ -154,17 +174,17 @@ class GameState {
 				'type' => 'error',
 				'error' => 'Game already full.'
 			));
-			return;
+			return false;
 		}
 
 		if (false === array_search($user, $this->users, true)) {
 			$this->users[] = $user;
-			$newName = $user->name;
+			$newName = $user->getName();
 			// make sure the new user's name is unique
 			do {
 				$nameDuplicated = false;
 				foreach($this->users as $u) {
-					if (0 === strcmp($u->name, $newName)) {
+					if (0 === strcmp($u->getName(), $newName)) {
 						$newName += '_';
 						$nameDuplicated = true;
 						break;
@@ -172,7 +192,7 @@ class GameState {
 				}
 			}
 			while($nameDuplicated);
-			if (0 !== strcmp($newName, $user->name)) {
+			if (0 !== strcmp($newName, $user->getName())) {
 				$user->updatePlayer(array('name' => $newName));
 			}
 			$msg = json_encode(array(
@@ -185,12 +205,14 @@ class GameState {
 				}
 			}
 			//TODO: reset the game state!
+			return true;
 		}
 		else {
 			$user->send(array(
 				'type' => 'error',
 				'error' => 'Cannot join the same game multiple times.'
 			));
+			return false;
 		}
 	}
 

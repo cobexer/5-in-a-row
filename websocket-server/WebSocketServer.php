@@ -215,7 +215,7 @@ class WebSocketServer {
 		$written = @socket_write($socket, $header . $message, $responseLength);
 		//TODO: continue writes in such cases
 		if (false === $written) {
-			logSocketError("failed to write to the client, disconnecting");
+			$this->logSocketError("failed to write to the client, disconnecting");
 			$this->disconnect($socket);
 			return false;
 		}

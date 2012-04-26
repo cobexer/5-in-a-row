@@ -37,6 +37,7 @@ function onMessage(event) {
 	case 'click':
 		// msg = { player: {...}, x: x, y: y [, isNextPlayer: true] }
 		// if (msg.isNextPlayer) ... we are the next one to click
+		clickField(msg);
 		break;
 	// some info about a player in this game changed
 	case 'updatePlayer':
@@ -61,6 +62,13 @@ function onMessage(event) {
 		break;
 	case 'newGame':
 		// msg= { name: '' }
+		$('#game-admin').show();
+		$('#game-name')
+			.on('change', function() {
+				//TODO: update name (on server, @other users)
+			})
+			.val(msg.name);
+
 		//TODO: reset game array, enable game admin controls
 		break;
 	}
