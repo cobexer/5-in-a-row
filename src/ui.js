@@ -46,14 +46,14 @@ function drawBackground()
 		background_window.drawImage(img,x_offset, y_offset, x_size_array*field_size, y_size_array*field_size);
 		background_window.globalCompositeOperation = "xor";
 		background_window.strokeStyle = "rgb(0,0,0)";
-		for(x=0; x<array.length; x++)
+		for(var x=0; x<array.length; x++)
 		{
-			for(y=0; y<array[0].length; y++)
+			for(var y=0; y<array[0].length; y++)
 			{
 				background_window.strokeRect(x_offset + field_size*x, (y_size_array*field_size + y_offset - field_size) - field_size*y, field_size, field_size);
 			}
 		}
-    }
+	};
 	img.src = 'style/wolken.jpg';
 }
 
@@ -110,7 +110,7 @@ function drawX(x, y, player)
 	y = y_size_array*field_size + y_offset - field_size/2 - field_size*y;
 
 	array_window.save();
-	array_window.translate(x, y)
+	array_window.translate(x, y);
 	array_window.rotate(Math.PI / 4);
 	array_window.fillStyle = player.color;
 	array_window.fillRect(-field_size/2, -2.5, field_size, 5);
