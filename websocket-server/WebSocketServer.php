@@ -571,7 +571,7 @@ abstract class WebSocketUser {
 				}
 				break;
 			case self::$STATUS_CLOSED:
-				if ($this->is(self::$STATUS_CLOSING)) {
+				if ($this->is(self::$STATUS_CLOSING) || $this->is(self::$STATUS_ONLINE)) {
 					$this->status = $status;
 					return;
 				}
