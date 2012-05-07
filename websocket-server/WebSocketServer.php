@@ -185,7 +185,7 @@ class WebSocketServer {
 				"Sec-WebSocket-Accept: " . base64_encode(sha1($headers['sec-websocket-key'] . self::$HandshakeMagicGUID, true))
 			);
 			if (isset($headers['origin'])) {
-				array_push($response, "Sec-WebSocket-Origin: " . $headers['origin']); //TODO: check RFC, should this be Allow-Origin??
+				array_push($response, "Access-Control-Allow-Origin: *");
 			}
 			$foundEndpoint = false;
 			foreach($this->endpoints as $eresource => $endpoint) {
