@@ -13,12 +13,15 @@ class WebSocketChatServer implements WebSocketEndpoint {
 	public function __construct(WebSocketServer $server) {
 		$this->websocketServer = $server;
 	}
+
 	public function getResource() {
 		return '/websocket/Chat';
 	}
+
 	public function getAllClients() {
 		return $this->websocketServer->getAllClients();
 	}
+
 	public function onNewUser($socket) {
 		return new WebSocketChatUser($this, $socket);
 	}
@@ -32,37 +35,41 @@ class WebSocketChatUser extends WebSocketUser {
 		$this->chatServer = $chatServer;
 		$this->name = "Guest" . (rand() % 10000);
 	}
+
 	/*
 	 * override the onMessage handler to process messages from users
 	 */
-	function onMessage($msg) {
-		$msgObj = json_decode($msg, true);
-		if ($msgObj && isset($msgObj['text'])) {
-			if ($msgObj['text'][0] != '/') {
-				$response = $this->getResponseObj($msgObj['text']);
-				$msg = json_encode($response);
-				foreach($this->chatServer->getAllClients() as $client) {
-					$client->send($msg);
-				}
-			}
-			else {
-				if (preg_match('/(\/\S*)\s*(.*)/', $msgObj['text'], $match)) {
-					switch ($match[1]) {
-						case '/name':
-						case '/me':
-							$this->name = $match[2];
-							break;
-						default:
-							$this->send(json_encode($this->getResponseObj('unknown command', false)));
-							break;
+	function onMessage(WebSocketMessage $msg) {
+		if ($msg->isText()) {
+			$msgObj = json_decode($msg->data, true);
+			if ($msgObj && isset($msgObj['text'])) {
+				if ($msgObj['text'][0] != '/') {
+					$response = $this->getResponseObj($msgObj['text']);
+					$msg = json_encode($response);
+					foreach($this->chatServer->getAllClients() as $client) {
+						$client->send($msg);
 					}
 				}
 				else {
-					$this->send(json_encode($this->getResponseObj('sorry not understood', false)));
+					if (preg_match('/(\/\S*)\s*(.*)/', $msgObj['text'], $match)) {
+						switch ($match[1]) {
+							case '/name':
+							case '/me':
+								$this->name = $match[2];
+								break;
+							default:
+								$this->send($this->getResponseObj('unknown command', false));
+								break;
+						}
+					}
+					else {
+						$this->send($this->getResponseObj('sorry not understood', false));
+					}
 				}
 			}
 		}
 	}
+
 	private function getResponseObj($message, $success = true) {
 		$response = array(
 			'status' => 'ok',
@@ -76,6 +83,7 @@ class WebSocketChatUser extends WebSocketUser {
 		}
 		return $response;
 	}
+
 	public function onDisconnected($success) {
 		$broadcast = $this->getResponseObj("User '" . $this->name . "' left", false);
 		$msg = json_encode($broadcast);
