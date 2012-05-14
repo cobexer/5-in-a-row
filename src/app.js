@@ -30,9 +30,6 @@ $(function() {
 			connect: function(event, channels) {
 				this.socket && this.socket.close();
 				var sock = this.socket = new WrappedWebSocket("ws://" + location.hostname + ":12345/websocket/Chat");
-				if (window.console && window.console.apply) {
-					WrappedWebSocket.log = function() { console.log.apply(console, arguments); };
-				}
 				sock.onmessage = function(msg) {
 					var msgObj = JSON.parse(msg.data);
 					$('#ingame-chat').chat('addMessage', 'Lobby', msgObj);

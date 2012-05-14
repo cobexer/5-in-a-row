@@ -21,7 +21,7 @@
 	<body>
 		<div id="content-wrapper">
 			<h1>5 in a row!</h1>
-			<div>
+			<div class="ui-corner-all ui-widget ui-widget-header">
 				<label>Name: <input type="text" id="player-name"/></label>
 				<!-- TODO: add js color picker?! -->
 				<label>Color: <select id="player-color">
@@ -36,10 +36,10 @@
 					<option>x</option>
 					<option>circle</option>
 				</select></label>
+				<button id="game-admin" style="display: none;">Game Settings</button>
 			</div>
 			<br />
-			<div id="game-admin" style="display: none;">
-				Your Game: <br />
+			<div id="game-admin-dialog" title="Administer your game" style="display:none;">
 				<label>Name: <input type="text" id="game-name" /></label>
 			</div>
 			<br />

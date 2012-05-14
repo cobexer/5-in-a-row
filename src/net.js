@@ -14,6 +14,10 @@ function initNet() {
 	if (gameSocket.readyState == WebSocket.OPEN) {
 		gameSocket.onopen();
 	}
+	$(window).on('beforeunload unload', function() {
+		gameSocket && gameSocket.close();
+		gameSocket = null;
+	});
 }
 
 function send(type, data) {
@@ -42,6 +46,14 @@ function onMessage(event) {
 	// some info about a player in this game changed
 	case 'updatePlayer':
 		// msg = { oldPlayer: { name: '', color: '', method: '' }, newPlayer: { name: '', color: '', method: '' } }
+		var player = msg.oldPlayer;
+		if (gamePlayer.name === player.name) {
+			// updating self
+			player = msg.newPlayer;
+			$('#player-name').val(player.name);
+			$('#player-color').val(player.color);
+			$('#player-method').val(player.method);
+		}
 		break;
 	// server tells us the config for us
 	case 'init':
@@ -62,14 +74,35 @@ function onMessage(event) {
 		break;
 	case 'newGame':
 		// msg= { name: '' }
-		$('#game-admin').show();
+		$('#game-admin')
+			.show()
+			.button({ icons: { primary: 'ui-icon-key' } })
+			.on('click', function() {
+				//TODO: implement dialog
+				$('#game-admin-dialog').dialog({
+					modal: true,
+					open: function() {
+						//TODO: init complex controls?!
+					},
+					close: function() {
+						//TODO: cleanup?
+					},
+					buttons: {
+						OK: function() {
+							//TODO. save changes
+							//TODO: distribute to other players: $('#game-name').val()
+							$(this).dialog('close');
+						},
+						Cancel: function() {
+							$(this).dialog('close');
+						}
+					}
+				});
+			});
 		$('#game-name')
-			.on('change', function() {
-				//TODO: update name (on server, @other users)
-			})
 			.val(msg.name);
 
-		//TODO: reset game array, enable game admin controls
+		//TODO: reset game array
 		break;
 	}
 }
