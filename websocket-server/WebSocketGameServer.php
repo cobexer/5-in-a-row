@@ -29,8 +29,15 @@ class WebSocketGameServer implements WebSocketEndpoint {
 	}
 
 	public function newGame(WebSocketGameUser $creator) {
-		$game = $this->games[] = new GameState($creator);
+		$game = $this->games[] = new GameState($this, $creator);
 		return $game;
+	}
+
+	public function destroyGame(GameState $game) {
+		$index = array_search($game, $this->games, true);
+		if (false !== $index) {
+			array_splice($this->games, $index, 1);
+		}
 	}
 
 	public function getOpenGames() {
@@ -61,6 +68,11 @@ class WebSocketGameUser extends WebSocketUser {
 	function getName() {
 		return $this->name;
 	}
+
+	function getColor() {
+		return $this->color;
+	}
+
 	function onMessage(WebSocketMessage $msg) {
 		if ($msg->isText()) {
 			$msgObj = json_decode($msg->data, true);
@@ -76,7 +88,9 @@ class WebSocketGameUser extends WebSocketUser {
 						}
 						break;
 					case 'init':
-						$this->updatePlayer($msgObj);
+						$this->name = $msgObj['name'];
+						$this->color = $msgObj['color'];
+						$this->method = $msgObj['method'];
 						$player = $this->getUserObj();
 						$player['type'] = 'init';
 						$this->send($player);
@@ -122,6 +136,7 @@ class WebSocketGameUser extends WebSocketUser {
 	public function onDisconnected($success) {
 		if ($this->game) {
 			$this->game->leave($this);
+			$this->game = null;
 		}
 	}
 
@@ -134,9 +149,7 @@ class WebSocketGameUser extends WebSocketUser {
 	}
 
 	public function updatePlayer($newData) {
-		if ($this->game) {
-			$old = $this->getUserObj();
-		}
+		$old = $this->getUserObj();
 		if (isset($newData['name'])) {
 			$this->name = $newData['name'];
 		}
@@ -146,30 +159,76 @@ class WebSocketGameUser extends WebSocketUser {
 		if (isset($newData['method'])) {
 			$this->method = $newData['method'];
 		}
+		$msgObj = array(
+			'type' => 'updatePlayer',
+			'oldPlayer' => $old,
+			'newPlayer' => $this->getUserObj()
+		);
+		$msg = json_encode($msgObj);
 		if ($this->game) {
-			$msgObj = array(
-				'type' => 'updatePlayer',
-				'oldPlayer' => $old,
-				'newPlayer' => $this->getUserObj()
-			);
-			$msg = json_encode($msgObj);
 			foreach($this->game->getUsers() as $u) {
 				$u->send($msg);
 			}
+		}
+		else {
+			$this->send($msg);
 		}
 	}
 }
 
 class GameState {
+	private static $availableColors = array('red', 'green', 'blue', 'orange', 'yellow', 'lime');
+	private $gameServer;
 	private $users;
 	private $creator;
-	public function __construct(WebSocketGameUser $creator) {
+	public function __construct(WebSocketGameServer $gameServer, WebSocketGameUser $creator) {
+		$this->gameServer = $gameServer;
 		$this->users = array($creator);
 		$this->creator = $creator;
 	}
 
 	public function isFull() {
 		return count($this->users) === 3;
+	}
+
+	public function checkPlayer(WebSocketGameUser $user, $makeUnique = false) {
+		$newName = $user->getName();
+		// make sure the new user's name is unique
+		do {
+			$nameDuplicated = false;
+			foreach($this->users as $u) {
+				if ($user !== $u && 0 === strcmp($u->getName(), $newName)) {
+					if (!$makeUnique) {
+						return false;
+					}
+					$newName .= '_';
+					$nameDuplicated = true;
+					break;
+				}
+			}
+		}
+		while($nameDuplicated);
+		$availableColors = self::$availableColors;
+		$takenColors = array();
+		foreach($this->users as $u) {
+			if ($u !== $user) {
+				$takenColors[$u->getColor()] = true;
+			}
+		}
+		$newColor = $user->getColor();
+		while (isset($takenColors[$newColor])) {
+			if (!$makeUnique) {
+				return false;
+			}
+			$newColor = self::$availableColors[mt_rand(0, count(self::$availableColors) - 1)];
+		}
+		if (0 !== strcmp($newName, $user->getName()) || 0 !== strcmp($newColor, $user->getColor())) {
+			$user->updatePlayer(array(
+				'name' => $newName,
+				'color' => $newColor
+			));
+		}
+		return true;
 	}
 
 	public function join(WebSocketGameUser $user) {
@@ -183,22 +242,7 @@ class GameState {
 
 		if (false === array_search($user, $this->users, true)) {
 			$this->users[] = $user;
-			$newName = $user->getName();
-			// make sure the new user's name is unique
-			do {
-				$nameDuplicated = false;
-				foreach($this->users as $u) {
-					if (0 === strcmp($u->getName(), $newName)) {
-						$newName += '_';
-						$nameDuplicated = true;
-						break;
-					}
-				}
-			}
-			while($nameDuplicated);
-			if (0 !== strcmp($newName, $user->getName())) {
-				$user->updatePlayer(array('name' => $newName));
-			}
+			$this->checkPlayer($user, true);
 			$msg = json_encode(array(
 				'type' => 'join',
 				'player' => $user->getUserObj()
@@ -228,6 +272,14 @@ class GameState {
 				'player' => $user->getUserObj()
 			));
 			array_splice($this->users, $pos, 1);
+			if ($this->creator === $user) {
+				// the creator left, destroy this game
+				$this->gameServer->destroyGame($this);
+				$msg = json_encode(array(
+					'type' => 'destroyGame',
+					'reason' => 'Creator left'
+				));
+			}
 			foreach($this->users as $u) {
 				if ($user !== $u) {
 					$u->send($msg);
