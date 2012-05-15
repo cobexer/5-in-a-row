@@ -9,6 +9,7 @@
 		<script src="lib/jquery-1.7.1.js"></script>
 		<script src="lib/jquery-ui/jquery-ui-1.8.18.js"></script>
 		<script src="lib/cobexer.chat.js"></script>
+		<script src="lib/jquery.notify.js"></script>
 		<script src="src/utils.js"></script>
 		<script src="src/websocket.wrapper.js"></script>
 		<script src="src/ui.js"></script>
@@ -16,6 +17,7 @@
 		<script src="src/app.js"></script>
 		<link rel="stylesheet" href="lib/jquery-ui/jquery-ui-1.8.18.css" />
 		<link rel="stylesheet" href="lib/cobexer.chat.css" />
+		<link rel="stylesheet" href="lib/ui.notify.css" />
 		<link rel="stylesheet" href="style/5-in-a-row.css" />
 	</head>
 	<body>
@@ -46,6 +48,13 @@
 			<div id="game-container">
 				<canvas id="background" width="640" height="480"></canvas>
 				<canvas id="game_array" width="640" height="480"></canvas>
+			</div>
+			<!--- container to hold notifications, and default templates -->
+			<div id="notification-container" style="display:none;">
+				<div id="notification-style-default">
+					<h1>#{title}</h1>
+					<p>#{text}</p>
+				</div>
 			</div>
 			<footer>Copyright &copy; 2012 Obexer Christoph, Watzinger Dietmar. All rights reserved.</footer>
 		</div>

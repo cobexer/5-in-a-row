@@ -54,6 +54,9 @@ function onMessage(event) {
 			$('#player-color').val(player.color);
 			$('#player-method').val(player.method);
 		}
+		else {
+			notify(player.name + " changed his/her name", "he/she want's to be called '" + msg.newPlayer.name + "' now.");
+		}
 		break;
 	// server tells us the config for us
 	case 'init':
@@ -63,6 +66,7 @@ function onMessage(event) {
 	case 'join':
 		// msg = { player: {...} }
 		//TODO: reset the game array
+		notify(msg.player.name, "has joined your game.");
 		break;
 	case 'reset':
 		// msg = {}
@@ -71,9 +75,11 @@ function onMessage(event) {
 	case 'playerLeft':
 		// msg = { player: {...} }
 		//TODO: reset the game array
+		notify(msg.player.name, "has left your game.");
 		break;
 	case 'newGame':
 		// msg= { name: '' }
+		notify("New game created", "you are now the leader of the new game named: '" + msg.name + "'.");
 		$('#game-admin')
 			.show()
 			.button({ icons: { primary: 'ui-icon-key' } })

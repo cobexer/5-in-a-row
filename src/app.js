@@ -57,4 +57,8 @@ $(function() {
 		send('updatePlayer', gamePlayer);
 	})
 	.val(gamePlayer.method);
+	$('#notification-container').notify();
 });
+function notify(title, message) {
+	$('#notification-container').notify('create', 'notification-style-default', { title: title, text: message });
+}
