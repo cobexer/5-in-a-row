@@ -5,13 +5,13 @@
  * Released under the MIT and GPL licenses.
  */
 
-var x_size_array = 20;
-var y_size_array = 15;
+var x_size_array;
+var y_size_array;
 var field_size = 32;
 var x_offset = 0;
 var y_offset = 0;
 
-var array = new Array(x_size_array);
+var array = [];
 var animation_counter;
 
 var array_window;
@@ -29,8 +29,10 @@ function init()
 	game_array = $("#game_array");
 	array_window = game_array[0].getContext('2d');
 	game_array.on('click', canvasClick);
+	x_size_array = Math.floor(game_array[0].width / field_size);
+	y_size_array = Math.floor(game_array[0].height / field_size);
 
-	for(var i=0; i<array.length; i++)
+	for(var i=0; i<x_size_array; i++)
 	{
 		array[i] = new Array(y_size_array);
 	}
